@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="../css/style.css" > 
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <title>ARTISTS</title>
+
+</head>
+
+<body>
+  <h1>ARTISTS</h1>
+  <h2>Please select your artist</h2>
+  <div>
+      <input type="text" id="searchInput" placeholder="Search..." > 
+      <div id="suggestions"></div>
+      <label for="rangeFilter">First Album Year</label>
+        <input type="range" value="" id="rangeFilter1" min="{{ .Min}}" max="{{ .Max}}" step="1">
+        <input type="range" value="" id="rangeFilter2" min="{{ .Min}}" max="{{ .Max}}" step="1">
+        <span id="rangeValue">{{.Min}}</span> - <span id="maxRangeValue">{{.Max}}</span>
+      <label>Members:</label>
+      <input type="checkbox" id="category1" class="category-filter" value="1">
+      <label for="category1">1</label>
+      <input type="checkbox" id="category2" class="category-filter" value="2">
+      <label for="category2">2</label>
+      <input type="checkbox" id="category3" class="category-filter" value="3">
+      <label for="category3">3</label>
+      <input type="checkbox" id="category4" class="category-filter" value="4">
+      <label for="category4">4</label>
+      <input type="checkbox" id="category5" class="category-filter" value="5">
+      <label for="category5">5</label>
+      <input type="checkbox" id="category6" class="category-filter" value="6">
+      <label for="category6">6</label>
+      <input type="checkbox" id="category7" class="category-filter" value="7">
+      <label for="category7">7</label>
+      <label for="firstAlbumDate">First Album Date:</label>
+      <input id = "firstAlbumDate" type="date">
+      <select type="text" id="country" name="target"  style="width: 300px;color: black;">
+        <option value="">Select a country</option>
+        {{range $country, $bol :=  .Countries}} 
+          <option value="{{$country}}" >{{$country}}</option>
+        {{end}}    
+      </select>
+      <select type="text" id="city" name="target"   style="width: 300px;color: black;"> 
+        <option value="">Select a city</option>
+        {{range $city, $bol :=  .Cities}} 
+          <option value="{{$city}}" >{{$city}}</option>
+        {{end}}  
+      </select>
+    
+  </div> 
+  <div id="slideContainer">
+    <ul id ="artistList">
+      {{range .ArtistsList}}
+      <li>
+        <a href="/artist?id={{.Id}}">
+          <img src="{{.Image}}" alt="{{.Name}}">
+        </a>
+        <h2> {{.Name}}</h2>
+      </li>
+      {{end}}
+    </ul>
+  </div>
+ 
+  <script>
+    const searchInput = document.getElementById("searchInput");
+    const suggestionsContainer = document.getElementById("suggestions");
+    const artistList = document.getElementById("artistList");
+    const list000 = document.getElementById("slideContainer");
+    const copyArtistList = artistList.cloneNode(true).innerHTML;
+    const images = list000.getElementsByTagName("img");
+    const image2 = [...images];
+    const rangeFilter = document.getElementById("rangeFilter");
+    const rangeValue = document.getElementById("rangeValue");    
+    const categoryFilters = document.querySelectorAll(".category-filter");
+    const firstAlbumDate = document.getElementById("firstAlbumDate");
+    const selectedCountry = document.getElementById("country");
+    const selectedCity = document.getElementById("city");
+    const rangeFilter1 = document.getElementById("rangeFilter1")
+    const rangeFilter2 = document.getElementById("rangeFilter2")
+    function getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters,firstAlbumDate, selectedCountry, selectedCity){//}, coutnriesList, citiesList) {
+      const searchTerm = searchInput.value;
+      console.log(rangeFilter1.value,rangeFilter2.value);
+      const rangeValue1 = rangeFilter1.value;
+      const rangeValue2 = rangeFilter2.value;
+      
+      const checkedCategories = Array.from(categoryFilters)
+            .filter(filter => filter.checked)
+            .map(filter => filter.value);
+      const checkedCategoriesString = checkedCategories.join(",");
+
+      const firstAlbumDateVal = firstAlbumDate.value
+      const [year, month, day] = firstAlbumDateVal.split("-");
+      let formattedDate = ""
+      if (typeof day !== 'undefined' && typeof month !== 'undefined' && typeof year !== 'undefined') {
+        formattedDate = day+"-"+month+"-"+year;
+      }
+      const selCountryVal = selectedCountry.value;
+      const selCityVal = selectedCity.value;
+      return {searchTerm, rangeValue1, rangeValue2, checkedCategoriesString, formattedDate, selCountryVal, selCityVal}
+    }
+
+    selectedCountry.addEventListener("change", () => {
+      let tempObj = getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters, firstAlbumDate, selectedCountry, selectedCity)
+      let searchTerm = tempObj.searchTerm, rangeValue1 = tempObj.rangeValue1,rangeValue2 = tempObj.rangeValue2, checkedCategoriesString = tempObj.checkedCategoriesString
+      let firstAlbumDateVal = tempObj.formattedDate
+      let selCountryVal = tempObj.selCountryVal
+      let selCityVal = tempObj.selCityVal
+      fetchSuggestions(searchTerm,rangeValue1, rangeValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal)
+    })
+    selectedCity.addEventListener("change", () => {
+      let tempObj = getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters, firstAlbumDate, selectedCountry, selectedCity)
+      let searchTerm = tempObj.searchTerm, rangeValue1 = tempObj.rangeValue1,rangeValue2 = tempObj.rangeValue2, checkedCategoriesString = tempObj.checkedCategoriesString
+      let firstAlbumDateVal = tempObj.formattedDate
+      let selCountryVal = tempObj.selCountryVal
+      let selCityVal = tempObj.selCityVal
+      fetchSuggestions(searchTerm,rangeValue1, rangeValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal)
+    })
+
+    firstAlbumDate.addEventListener("input", () => {
+      let tempObj = getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters, firstAlbumDate, selectedCountry, selectedCity)
+      let searchTerm = tempObj.searchTerm, rangeValue1 = tempObj.rangeValue1,rangeValue2 = tempObj.rangeValue2, checkedCategoriesString = tempObj.checkedCategoriesString
+      let firstAlbumDateVal = tempObj.formattedDate
+      let selCountryVal = tempObj.selCountryVal
+      let selCityVal = tempObj.selCityVal
+      fetchSuggestions(searchTerm,rangeValue1, rangeValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal)
+    });
+
+    rangeFilter1.addEventListener("input", () => {
+      let tempObj = getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters, firstAlbumDate, selectedCountry, selectedCity)
+      let searchTerm = tempObj.searchTerm, rangeValue1 = tempObj.rangeValue1,rangeValue2 = tempObj.rangeValue2, checkedCategoriesString = tempObj.checkedCategoriesString
+      let firstAlbumDateVal = tempObj.formattedDate
+      let selCountryVal = tempObj.selCountryVal
+      let selCityVal = tempObj.selCityVal
+      fetchSuggestions(searchTerm,rangeValue1, rangeValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal)
+    });
+    rangeFilter2.addEventListener("input", () => {
+      let tempObj = getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters, firstAlbumDate, selectedCountry, selectedCity)
+      let searchTerm = tempObj.searchTerm, rangeValue1 = tempObj.rangeValue1,rangeValue2 = tempObj.rangeValue2, checkedCategoriesString = tempObj.checkedCategoriesString
+      let firstAlbumDateVal = tempObj.formattedDate
+      let selCountryVal = tempObj.selCountryVal
+      let selCityVal = tempObj.selCityVal
+      fetchSuggestions(searchTerm,rangeValue1, rangeValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal)
+    });
+
+    for (const categoryFilter of categoryFilters) {
+      categoryFilter.addEventListener("change", () => {
+        let tempObj = getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters, firstAlbumDate, selectedCountry, selectedCity)
+        let searchTerm = tempObj.searchTerm, rangeValue1 = tempObj.rangeValue1,rangeValue2 = tempObj.rangeValue2, checkedCategoriesString = tempObj.checkedCategoriesString
+        let firstAlbumDateVal = tempObj.formattedDate
+        let selCountryVal = tempObj.selCountryVal
+        let selCityVal = tempObj.selCityVal
+        fetchSuggestions(searchTerm,rangeValue1, rangeValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal)
+      });
+    }
+
+    searchInput.addEventListener("input", () => {
+      suggestionsContainer.style = "visibility: visible";
+      let tempObj = getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters, firstAlbumDate, selectedCountry, selectedCity)
+      let searchTerm = tempObj.searchTerm, rangeValue1 = tempObj.rangeValue1,rangeValue2 = tempObj.rangeValue2, checkedCategoriesString = tempObj.checkedCategoriesString
+      let firstAlbumDateVal = tempObj.formattedDate
+      let selCountryVal = tempObj.selCountryVal
+      let selCityVal = tempObj.selCityVal
+      fetchSuggestions(searchTerm,rangeValue1, rangeValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal)
+    });
+
+    document.body.addEventListener("click", function(event) {
+      suggestionsContainer.style = "visibility: hidden";
+    });
+
+    function fetchSuggestions(searchTerm,rangValue1, rangValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal) {
+      fetch(`/search?searchTerm=${searchTerm}&CD1=${rangValue1}&CD2=${rangValue2}&membersNums=${checkedCategoriesString}&FAD=${firstAlbumDateVal}&country=${selCountryVal}&city=${selCityVal}`)
+        .then(response => response.json())
+        .then(data => displaySuggestions(data))
+        .catch(error => console.error(error));
+    }
+
+    function displaySuggestions(suggestions) {
+      artistList.innerHTML = "";
+      for (let key in suggestions["set"]) {
+        const li = document.createElement("li");
+        const a = document.createElement("a");
+        const img = document.createElement("img");
+        const h2 = document.createElement("h2");
+
+        a.href = "/artist?id=" + key;
+        img.src = image2[key-1].getAttribute("src");
+        h2.textContent = suggestions["set"].key;
+
+        a.appendChild(img);
+        a.appendChild(h2);
+        li.appendChild(a);
+        artistList.appendChild(li);
+      }
+    
+      if (suggestions["suggestions"].length < 1) {
+        suggestionsContainer.innerHTML = ""
+        const notFoundElement = document.createElement("div");
+        notFoundElement.textContent = "NOT FOUND ----FUCK OFFFFFFF!!!!!!:DDDD";
+        artistList.innerHTML = "";
+        artistList.appendChild(notFoundElement);
+        return
+      }
+      suggestionsContainer.innerHTML = "";
+      for (let suggestion of suggestions["suggestions"]) {
+        const checkedCategories = Array.from(categoryFilters)
+        .filter(filter => filter.checked)
+        .map(filter => filter.value);
+        const checkedCategoriesString = checkedCategories.join(",");
+        const suggestionDiv = document.createElement("div");
+        suggestionDiv.classList.add("suggestion");
+        suggestionDiv.textContent = suggestion;
+        suggestionsContainer.appendChild(suggestionDiv);
+        suggestionDiv.addEventListener("click", () => {
+            const startIndex = suggestion.indexOf("- ");
+            const trimmedStr = startIndex !== -1 ? suggestion.substring(0, startIndex) : suggestion;
+            searchInput.value = trimmedStr;
+            suggestionsContainer.innerHTML = "";
+            suggestionsContainer.style = "visibility: hidden";
+            let tempObj = getValues(searchInput, rangeFilter1, rangeFilter2, categoryFilters, firstAlbumDate, selectedCountry, selectedCity)
+            let trimmedSearchTerm = tempObj.searchTerm, rangeValue1 = tempObj.rangeValue1,rangeValue2 = tempObj.rangeValue2, checkedCategoriesString = tempObj.checkedCategoriesString
+            let firstAlbumDateVal = tempObj.formattedDate
+            let selCountryVal = tempObj.selCountryVal
+            let selCityVal = tempObj.selCityVal
+            fetchSuggestions(trimmedSearchTerm, rangeValue1, rangeValue2, checkedCategoriesString, firstAlbumDateVal, selCountryVal, selCityVal)
+        });
+      }
+    }  
+
+    function resetAllInputs() {
+      rangeFilter1.value = rangeFilter1.getAttribute("min");
+      rangeFilter2.value = rangeFilter2.getAttribute("max"); // Reset range filter value
+      categoryFilters.forEach(filter => filter.checked = false); 
+      firstAlbumDate.value = ""; // Reset first album date
+      const countrySelect = document.getElementById("country");
+      countrySelect.selectedIndex = 0; // Reset country select to default
+      const citySelect = document.getElementById("city");
+      citySelect.selectedIndex = 0; // Reset city select to default
+    }
+    document.addEventListener("DOMContentLoaded", resetAllInputs);
+  </script>
+</body>
+
+</html>

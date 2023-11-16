@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artist Details</title>
+  <link rel="stylesheet" type="text/css" href="../css/style.css" >
+</head>
+
+<body>
+  <h1>Artist Details</h1>
+
+  <div id="artistContainer" >
+    <img src="{{.Image}}" alt="{{.Name}}">
+    <ul>
+      <li><strong>Name:</strong> {{.Name}}</li>
+      <li><strong>Creation Date:</strong> {{.CreationDate}}</li>
+      <li><strong>Members:</strong></li>
+      <ul class="members-list">
+        {{range .Members}}
+        <li>{{.}}</li>
+        {{end}}
+      </ul>
+      <li class="first-album"><strong>First Album:</strong> {{.FirstAlbum}}</li>
+      {{range $country, $map := .DatesLocation}}
+      <li  value="{{$country}}">
+        <strong id="country">Location: {{$country}}</strong>
+        <ul>
+          {{range $place, $date := $map}}
+          <li> 
+            <strong id="crenge" value="{{$place}}">Place: {{$place}}, {{$country}}</strong>
+            <ul>
+              {{range $index,$data := $date}}
+              <li>
+                {{$data}}
+              </li>
+              {{end}}
+            </ul>
+          </li>
+          {{end}}
+        </ul>
+      </li>
+      {{end}}
+    </ul>
+  </div>
+
+
+        <!-- geolocalization -->
+  <div id="googleMap" style="width:60%; height:700px;margin: 40px 20%;"></div>
+        
+  <script>
+
+    var placeElements = document.querySelectorAll('#crenge'); // Select all elements with id "crenge"
+    var arr = [];
+
+    // Loop through the elements and extract the place names
+
+    for (var i = 0; i < placeElements.length; i++) {
+      arr.push(placeElements[i].textContent.substring(7,placeElements[i].textContent.length));
+    }
+    console.log(arr);
+    // Now you have an array of place names
+    var map
+
+    function myMap() {
+      var geocoder = new google.maps.Geocoder(); 
+      var latlng = new google.maps.LatLng(51.508742,-0.120850);
+      var mapOptions = {
+        zoom: 2,
+        center: latlng
+      }
+
+      map = new google.maps.Map(document.getElementById('googleMap'), mapOptions);
+      
+      for (key of arr) {
+        geocoder.geocode( { 'address': key}, function(results, status){
+          if (status == 'OK') {
+            map.setCenter(results[0].geometry.location);
+            let marker = new google.maps.Marker( {
+              map: map,
+              position: results[0].geometry.location 
+            });
+            const infowindow = new google.maps.InfoWindow({
+              content: "<p>Marker Location:" + marker.getPosition() + "</p>",
+          });
+          google.maps.event.addListener(marker,'click',function() {
+              var pos = map.getZoom();
+              map.setZoom(9);
+              map.setCenter(marker.getPosition());
+              window.setTimeout(function() {map.setZoom(pos);},3000);
+          })
+          } else {
+            console.log("Don't work because:" + status)
+          }
+        }) 
+      }
+    }
+  </script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDJx0LYrn5ht78uS3ffi8KyYwtHJtLkcuU&callback=myMap"></script>
+ 
+  <div class="button-container">
+    <form action="/">
+       <button class="button1" type="submit">Home</button>
+    </form>
+  </div>
+</body>
+
+</html>
